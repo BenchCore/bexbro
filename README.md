@@ -7,7 +7,7 @@ many of our native `SideChains` like `MUZ`, `SHARE`, `VID`, `SHOP` and `DAN`.
 You need to have node (version 7.6.0 or newer) installed. Then:
 ```
 $> yarn add global bexbro
-$> bexbro
+$> bench
 
   _______   ______   __     __    _______   ______    ______      
 /_______/\ /_____/\ /__/\ /__/\ /_______/\ /_____/\  /_____/\     
@@ -17,16 +17,16 @@ $> bexbro
    \::(_)  \ \\:\____/\\ \ \ \::\ \\::(_)  \ \\ \ `\ \ \\:\_\ \ \
     \_______\/ \_____\/ \_\/  \__\/ \_______\/ \_\/ \_\/ \_____\/
 
-bexbro>
+bench>
 ```
 
 # Usage
 ```
-bexbro> yo
+bench> help
 
   Commands:
 
-    yo [command...]                       Provides help for a given command.
+    help [command...]                       Provides help for a given command.
     init <chain>                          Initiate a connection to the Bench RootChain or a native SideChain.
     get peer <ledger-peer-url>            Initiate a connection with a public peer ex: "connect peer michaelx.bex.life:6620"
     bex life                              Print network statistics to a Bench RootChain or SideChain you are connected to.

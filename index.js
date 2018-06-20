@@ -13,15 +13,15 @@ const vorpal = require('vorpal')();
 const child_process = require('child_process');
 const Path = require('path');
 
-var ledgerSupported = true;
-try {
-  var ledger = require('ledgerco');
-  var BexLedgerWallet = require('./src/BexLedgerWallet.js');
-  var ledgerWorker = child_process.fork(Path.resolve(__dirname, './ledger-worker'));
-} catch (USBError) {
-  ledgerSupported = false;
-  vorpal.log(colors.yellow("Warning: BenchPay CLI (BexCli) is running on a server or virtual machine: No Ledger support available."));
-}
+// var ledgerSupported = true;
+// try {
+//   var ledger = require('ledgerco');
+//   var BexLedgerWallet = require('./src/BexLedgerWallet.js');
+//   var ledgerWorker = child_process.fork(Path.resolve(__dirname, './ledger-worker'));
+// } catch (USBError) {
+//   ledgerSupported = false;
+//   vorpal.log(colors.yellow("Warning: BenchPay CLI (BexCli) is running on a server or virtual machine: No Ledger support available."));
+// }
 
 var blessed = require('blessed');
 var contrib = require('blessed-contrib');
@@ -196,164 +196,164 @@ function getAccount(container, seriesCb) {
       }
     });
   };
-  if (ledgerSupported && ledgerAccounts.length) {
-    var message = 'We have found the following Ledgers: \n';
-    ledgerAccounts.forEach(function(ledger, index) {
-      var balance = network.config.symbol + (ledger.data.accountData.balance / 100000000);
-      message += (index + 1) + ') ' + ledger.data.address + ' (' + balance + ')' + '\n';
-    });
-    message += 'N) passphrase\n\n';
-    message += 'Please choose an option: ';
-    container.prompt({
-      type: 'input',
-      name: 'account',
-      message: message,
-    }, function(result){
-      if (result.account.toUpperCase() === 'N') {
-        getPassPhrase();
-      } else if (ledgerAccounts[result.account - 1]) {
-        var ledger = ledgerAccounts[result.account - 1];
-        return seriesCb(null, {
-          address: ledger.data.address,
-          publicKey: ledger.data.publicKey,
-          path: ledger.path,
-        });
-      } else {
-        return seriesCb("Failed to get Accounts");
-      }
-    });
-  } else {
-    getPassPhrase();
-  }
+  // if (ledgerSupported && ledgerAccounts.length) {
+  //   var message = 'We have found the following Ledgers: \n';
+  //   ledgerAccounts.forEach(function(ledger, index) {
+  //     var balance = network.config.symbol + (ledger.data.accountData.balance / 100000000);
+  //     message += (index + 1) + ') ' + ledger.data.address + ' (' + balance + ')' + '\n';
+  //   });
+  //   message += 'N) passphrase\n\n';
+  //   message += 'Please choose an option: ';
+  //   container.prompt({
+  //     type: 'input',
+  //     name: 'account',
+  //     message: message,
+  //   }, function(result){
+  //     if (result.account.toUpperCase() === 'N') {
+  //       getPassPhrase();
+  //     } else if (ledgerAccounts[result.account - 1]) {
+  //       var ledger = ledgerAccounts[result.account - 1];
+  //       return seriesCb(null, {
+  //         address: ledger.data.address,
+  //         publicKey: ledger.data.publicKey,
+  //         path: ledger.path,
+  //       });
+  //     } else {
+  //       return seriesCb("Failed to get Accounts");
+  //     }
+  //   });
+  // } else {
+  //   getPassPhrase();
+  // }
 }
 
-function resetLedger() {
-  ledgerAccounts = [];
-  ledgerBridge = null;
-  if (ledgerComm !== null) {
-    ledgerComm.close_async();
-    ledgerComm   = null;
-  }
-}
-
-async function populateLedgerAccounts() {
-  if (!ledgerSupported || !ledgerBridge) {
-    return;
-  }
-  ledgerAccounts = [];
-  ///var accounts = [];
-  var account_index = 0;
-  var path = network.hasOwnProperty('ledgerpath') ? network.ledgerpath : "44'/111'/";
-  var empty = false;
-
-  while (!empty) {
-    var localpath = path + account_index + "'/0/0";
-    var result = null;
-    try {
-      await ledgerBridge.getAddress_async(localpath).then(
-        (response) => { result = response }
-      ).fail(
-        (response) => { result = response }
-      );
-      if (result.publicKey) {
-        result.address = bcorejs.crypto.getAddress(result.publicKey);
-        var accountData = null;
-        await requestPromise({
-          uri: 'http://' + server + '/api/accounts?address=' + result.address,
-          headers: {
-            nethash: network.nethash,
-            version: '1.0.0',
-            port: 1
-          },
-          timeout: 5000,
-          json: true,
-        }).then(
-          (body) => { accountData = body }
-        );
-        if (!accountData || accountData.success === false) {
-          // Add an empty available account when 0 transactions have been made.
-          empty = true;
-          result.accountData = {
-            address: result.address,
-            unconfirmedBalance: "0",
-            balance: "0",
-            publicKey: result.publicKey,
-            unconfirmedSignature: 0,
-            secondSignature: 0,
-            secondPublicKey: null,
-            multisignatures: [],
-            u_multisignatures: []
-          };
-        } else {
-          result.accountData = accountData.account;
-        }
-      }
-    } catch (e) {
-      console.log('no request:', e);
-      break;
-    }
-    if (result && result.address) {
-      ledgerAccounts.push({
-        data: result,
-        path: localpath
-      });
-      account_index = account_index + 1;
-    } else {
-      empty = true;
-    }
-  }
-
-  if (ledgerAccounts.length) {
-    vorpal.log('Ledger App Connected');
-  }
-}
-
-async function ledgerSignTransaction(seriesCb, transaction, account, callback) {
-  if (!ledgerSupported || !account.publicKey || !account.path) {
-    return callback(transaction);
-  }
-
-  transaction.senderId = account.address;
-  if (transaction.type === 3) {
-    transaction.recipientId = account.address;
-  }
-  transaction.senderPublicKey = account.publicKey;
-  delete transaction.signature;
-  var transactionHex = bcorejs.crypto.getBytes(transaction, true, true).toString("hex");
-  var result = null;
-  console.log('Please sign the transaction on your Ledger');
-  await ledgerBridge.signTransaction_async(account.path, transactionHex).then(
-    (response) => { result = response }
-  ).fail(
-    (response) => { result = response }
-  );
-  if (result.signature && result.signature === '00000100') {
-    return seriesCb('We could not sign the transaction. Close everything using the Ledger and try again.');
-  } else if (result.signature) {
-    transaction.signature = result.signature;
-    transaction.id = bcorejs.crypto.getId(transaction);
-  } else {
-    transaction = null;
-  }
-  callback(transaction);
-}
-
-if (ledgerSupported) {
-ledgerWorker.on('message', function (message) {
-  if (message.connected && network && (!ledgerComm || !ledgerAccounts.length)) {
-    ledger.comm_node.create_async().then((comm) => {
-      ledgerComm = comm;
-      ledgerBridge = new BexLedgerWallet(ledgerComm);
-      populateLedgerAccounts();
-    }).fail((error) => {
-      //vorpal.log(colors.red('ledger error: ' +error));
-    });
-  } else if (!message.connected && ledgerComm) {
-    vorpal.log('Ledger App Disconnected');
-    resetLedger();
-  }
-});
-}
+// function resetLedger() {
+//   ledgerAccounts = [];
+//   ledgerBridge = null;
+//   if (ledgerComm !== null) {
+//     ledgerComm.close_async();
+//     ledgerComm   = null;
+//   }
+// }
+//
+// async function populateLedgerAccounts() {
+//   if (!ledgerSupported || !ledgerBridge) {
+//     return;
+//   }
+//   ledgerAccounts = [];
+//   ///var accounts = [];
+//   var account_index = 0;
+//   var path = network.hasOwnProperty('ledgerpath') ? network.ledgerpath : "44'/111'/";
+//   var empty = false;
+//
+//   while (!empty) {
+//     var localpath = path + account_index + "'/0/0";
+//     var result = null;
+//     try {
+//       await ledgerBridge.getAddress_async(localpath).then(
+//         (response) => { result = response }
+//       ).fail(
+//         (response) => { result = response }
+//       );
+//       if (result.publicKey) {
+//         result.address = bcorejs.crypto.getAddress(result.publicKey);
+//         var accountData = null;
+//         await requestPromise({
+//           uri: 'http://' + server + '/api/accounts?address=' + result.address,
+//           headers: {
+//             nethash: network.nethash,
+//             version: '1.0.0',
+//             port: 1
+//           },
+//           timeout: 5000,
+//           json: true,
+//         }).then(
+//           (body) => { accountData = body }
+//         );
+//         if (!accountData || accountData.success === false) {
+//           // Add an empty available account when 0 transactions have been made.
+//           empty = true;
+//           result.accountData = {
+//             address: result.address,
+//             unconfirmedBalance: "0",
+//             balance: "0",
+//             publicKey: result.publicKey,
+//             unconfirmedSignature: 0,
+//             secondSignature: 0,
+//             secondPublicKey: null,
+//             multisignatures: [],
+//             u_multisignatures: []
+//           };
+//         } else {
+//           result.accountData = accountData.account;
+//         }
+//       }
+//     } catch (e) {
+//       console.log('no request:', e);
+//       break;
+//     }
+//     if (result && result.address) {
+//       ledgerAccounts.push({
+//         data: result,
+//         path: localpath
+//       });
+//       account_index = account_index + 1;
+//     } else {
+//       empty = true;
+//     }
+//   }
+//
+//   if (ledgerAccounts.length) {
+//     vorpal.log('Ledger App Connected');
+//   }
+// }
+//
+// async function ledgerSignTransaction(seriesCb, transaction, account, callback) {
+//   if (!ledgerSupported || !account.publicKey || !account.path) {
+//     return callback(transaction);
+//   }
+//
+//   transaction.senderId = account.address;
+//   if (transaction.type === 3) {
+//     transaction.recipientId = account.address;
+//   }
+//   transaction.senderPublicKey = account.publicKey;
+//   delete transaction.signature;
+//   var transactionHex = bcorejs.crypto.getBytes(transaction, true, true).toString("hex");
+//   var result = null;
+//   console.log('Please sign the transaction on your Ledger');
+//   await ledgerBridge.signTransaction_async(account.path, transactionHex).then(
+//     (response) => { result = response }
+//   ).fail(
+//     (response) => { result = response }
+//   );
+//   if (result.signature && result.signature === '00000100') {
+//     return seriesCb('We could not sign the transaction. Close everything using the Ledger and try again.');
+//   } else if (result.signature) {
+//     transaction.signature = result.signature;
+//     transaction.id = bcorejs.crypto.getId(transaction);
+//   } else {
+//     transaction = null;
+//   }
+//   callback(transaction);
+// }
+//
+// if (ledgerSupported) {
+// ledgerWorker.on('message', function (message) {
+//   if (message.connected && network && (!ledgerComm || !ledgerAccounts.length)) {
+//     ledger.comm_node.create_async().then((comm) => {
+//       ledgerComm = comm;
+//       ledgerBridge = new BexLedgerWallet(ledgerComm);
+//       populateLedgerAccounts();
+//     }).fail((error) => {
+//       //vorpal.log(colors.red('ledger error: ' +error));
+//     });
+//   } else if (!message.connected && ledgerComm) {
+//     vorpal.log('Ledger App Disconnected');
+//     resetLedger();
+//   }
+// });
+// }
 
 vorpal
   .command('init <network>', 'Initiate a connection to the Bench rootchain or a native sidechain.')
@@ -1172,10 +1172,10 @@ vorpal
   });
 
 
-vorpal.history('bexbro');
+vorpal.history('bench');
 
 vorpal.log(colors.cyan(figlet.textSync("BEX","Swamp Land")));
 
 vorpal
-  .delimiter('bexbro>')
+  .delimiter('bench>')
   .show();
