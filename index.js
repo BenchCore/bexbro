@@ -68,7 +68,7 @@ function getNetworkFromNethash(nethash){
 
 function findEnabledPeers(cb){
   var peers=[];
-  getFromNode('http://'+server+'/peer/list', function(err, response, body){
+  getFromNode('http://'+server+'/api/peers', function(err, response, body){
 
     if(err){
       vorpal.log(colors.red("Can't get peers from network: " + err));
