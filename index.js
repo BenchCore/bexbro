@@ -40,32 +40,16 @@ const networks = {
   benchtest: {
     nethash: "08342b1ec5cf90a4f6be50f0273eb205bd8cd29f7dca8897f2d5e5e0975ef401",
     peers: [
-      "texnet1.bex.life:6622",
-      "texnet2.bex.life:6622",
-      "texnet3.bex.life:6622",
-      "texnet4.bex.life:6622",
-      "texnet5.bex.life:6622"
+      "51.15.113.19:6619"
     ],
-    ledgerpath: "44'/1'/"
+    // ledgerpath: "44'/1'/"
   },
   bench: {
     nethash: "6e84d08bd299ed97c212c886c98a57e36545c8f5d645ca7eeae63a8bd62d8988",
     peers: [
-      "node1.bex.life:6620",
-      "node2.bex.life:6620",
-      "node3.bex.life:6620",
-      "node4.bex.life:6620",
-      "node5.bex.life:6620",
-      "node6.bex.life:6620",
-      "node7.bex.life:6620",
-      "node8.bex.life:6620",
-      "node9.bex.life:6620",
-      "node10.bex.life:6620",
-      "node12.bex.life:6620",
-      "node13.bex.life:6620",
-      "node14.bex.life:6620"
+      "51.15.99.156:6620"
     ],
-    ledgerpath: "44'/111'/"
+    // ledgerpath: "44'/111'/"
   }
 };
 
