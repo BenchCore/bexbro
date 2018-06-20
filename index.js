@@ -31,10 +31,10 @@ var server;
 var network;
 var bexPriceTicker = {};
 const currencies = ["USD","AUD", "BRL", "CAD", "CHF", "CNY", "EUR", "GBP", "HKD", "IDR", "INR", "JPY", "KRW", "MXN", "RUB"];
-
-var ledgerAccounts = [];
-var ledgerBridge = null;
-var ledgerComm   = null;
+//
+// var ledgerAccounts = [];
+// var ledgerBridge = null;
+// var ledgerComm   = null;
 
 const networks = {
   benchtest: {
@@ -457,19 +457,6 @@ vorpal
     });
   });
 
-vorpal
-  .command('kill', 'Kill a connection to a peer or a Bench rootchain/sidechain')
-  .action(function(args, callback) {
-		var self = this;
-    self.log("Killed connection to "+server);
-    self.delimiter('bex>');
-    server=null;
-    network=null;
-    connected = false;
-
-    resetLedger();
-    callback();
-  });
 
 vorpal
   .command('bex life', 'Print network statistics to a Bench rootchain or sidechain you are connected to.')
@@ -881,183 +868,68 @@ vorpal
       return callback();
     });
   });
-
-vorpal
-  .command('pay <amount> <address>', 'Pay <amount> (of ASSET) to <address>. <amount>.')
-  .action(function(args, callback) {
-		var self = this;
-    if(!isConnected()){
-      self.log("You have to be connected to a Bench rootchain or sidechain in order to send transactions.");
-      return callback();
-    }
-    var currency;
-    var found = false;
-
-    if(typeof args.amount != "number")
-    {
-
-      for(var i in currencies)
-      {
-        if(args.amount.startsWith(currencies[i]))
-        {
-          currency=currencies[i];
-          args.amount = Number(args.amount.replace(currency,""));
-          getBEXPriceTicker(currency);
-          found = true;
-          break;
-        }
-      }
-
-      if(!found)
-      {
-        self.log("Invalid Currency Format");
+  vorpal
+    .command('register as delegate <username>', 'Register yourself as a delegate on the Bench rootchain or sidechain you are connected to.')
+    .action(function(args, callback) {
+  		var self = this;
+      if(!isConnected()){
+        self.log("You have to be connected to a Bench rootchain or sidechain to register as a delegate.");
         return callback();
       }
-    }
-
-    async.waterfall([
-      function(seriesCb){
-        getAccount(self, seriesCb);
-      },
-      function(account, seriesCb){
-        var address = null;
-        var publicKey = null;
-        var passphrase = '';
-        if (account.passphrase) {
-          passphrase = account.passphrase;
-          var keys = bcorejs.crypto.getKeys(passphrase);
-          publicKey = keys.publicKey;
-          address = bcorejs.crypto.getAddress(publicKey);
-        } else if (account.publicKey) {
-          address = account.address;
-          publicKey = account.publicKey;
-        } else {
-          return seriesCb('No public key for account');
-        }
-
-        var bexamount = args.amount;
-        var bexAmountString = args.amount;
-
-        if(currency){
-          if(!bexPriceTicker[currency]){
-            return seriesCb("Can't get price from market. Aborted.");
+      async.waterfall([
+        function(seriesCb) {
+          getAccount(self, seriesCb);
+        },
+        function(account, seriesCb) {
+          var address = null;
+          var publicKey = null;
+          var passphrase = '';
+          if (account.passphrase) {
+            passphrase = account.passphrase;
+            var keys = bcorejs.crypto.getKeys(passphrase);
+            publicKey = keys.publicKey;
+            address = bcorejs.crypto.getAddress(publicKey);
+          } else if (account.publicKey) {
+            address = account.address;
+            publicKey = account.publicKey;
+          } else {
+            return seriesCb('No public key for account');
           }
-          bexamount = parseInt(args.amount * 100000000 / Number(bexPriceTicker[currency]["price_"+currency.toLowerCase()]),10);
-          bexAmountString = bexamount/100000000;
-        } else {
-          bexamount = parseInt(args.amount * 100000000, 10);
-        }
-
-        self.prompt({
-          type: 'confirm',
-          name: 'continue',
-          default: false,
-          message: 'Sending ' + bexAmountString + ' ' + network.config.token+' '+(currency?'('+currency+args.amount+') ':'')+'to '+args.address+' now',
-        }, function(result){
-          if (result.continue) {
-            try {
-              var transaction = bcorejs.transaction.createTransaction(args.address, bexamount, null, passphrase);
-            } catch (error) {
-              return seriesCb('Failed: ' + error);
+          try {
+            var transaction = bcorejs.delegate.createDelegate(passphrase, args.delegate_name);
+          } catch (error) {
+            return seriesCb('Failed: ' + error);
+          }
+          ledgerSignTransaction(seriesCb, transaction, account, function(transaction) {
+            if (!transaction) {
+              return seriesCb('Failed to sign transaction with ledger');
             }
-            ledgerSignTransaction(seriesCb, transaction, account, function(transaction) {
-              if (!transaction) {
-                return seriesCb('Failed to sign transaction with ledger');
-              }
-              return seriesCb(null, transaction);
-            });
-          }
-          else {
-            return seriesCb("Aborted.");
-          }
-        });
-      },
-      function(transaction, seriesCb){
-        postTransaction(self, transaction, function(err, response, body){
-          if(err){
-            seriesCb("Failed to send transaction: " + err);
-          }
-          else if(body.success){
-            seriesCb(null, transaction);
-          }
-          else {
-            seriesCb("Failed to send transaction: " + body.error);
-          }
-        });
-      }
-    ], function(err, transaction){
-      if(err){
-        self.log(colors.red(err));
-      }
-      else{
-        self.log(colors.green("Transaction sent successfully with id "+transaction.id));
-      }
-      return callback();
-    });
-  });
-
-vorpal
-  .command('register as delegate <username>', 'Register yourself as a delegate on the Bench rootchain or sidechain you are connected to.')
-  .action(function(args, callback) {
-		var self = this;
-    if(!isConnected()){
-      self.log("You have to be connected to a Bench rootchain or sidechain to register as a delegate.");
-      return callback();
-    }
-    async.waterfall([
-      function(seriesCb) {
-        getAccount(self, seriesCb);
-      },
-      function(account, seriesCb) {
-        var address = null;
-        var publicKey = null;
-        var passphrase = '';
-        if (account.passphrase) {
-          passphrase = account.passphrase;
-          var keys = bcorejs.crypto.getKeys(passphrase);
-          publicKey = keys.publicKey;
-          address = bcorejs.crypto.getAddress(publicKey);
-        } else if (account.publicKey) {
-          address = account.address;
-          publicKey = account.publicKey;
-        } else {
-          return seriesCb('No public key for account');
+            return seriesCb(null, transaction);
+          });
+        },
+        function(transaction, seriesCb) {
+          postTransaction(self, transaction, function(err, response, body){
+            if(err){
+              seriesCb("Failed to send transaction: " + err);
+            }
+            else if(body.success){
+              seriesCb(null, transaction);
+            }
+            else {
+              seriesCb("Failed to send transaction: " + body.error);
+            }
+          });
         }
-        try {
-          var transaction = bcorejs.delegate.createDelegate(passphrase, args.delegate_name);
-        } catch (error) {
-          return seriesCb('Failed: ' + error);
+      ], function(err, transaction){
+        if(err){
+          self.log(colors.red(err));
         }
-        ledgerSignTransaction(seriesCb, transaction, account, function(transaction) {
-          if (!transaction) {
-            return seriesCb('Failed to sign transaction with ledger');
-          }
-          return seriesCb(null, transaction);
-        });
-      },
-      function(transaction, seriesCb) {
-        postTransaction(self, transaction, function(err, response, body){
-          if(err){
-            seriesCb("Failed to send transaction: " + err);
-          }
-          else if(body.success){
-            seriesCb(null, transaction);
-          }
-          else {
-            seriesCb("Failed to send transaction: " + body.error);
-          }
-        });
-      }
-    ], function(err, transaction){
-      if(err){
-        self.log(colors.red(err));
-      }
-      else{
-        self.log(colors.green("Transaction sent successfully with id "+transaction.id));
-      }
-      return callback();
+        else{
+          self.log(colors.green("Transaction sent successfully with id "+transaction.id));
+        }
+        return callback();
+      });
     });
-  });
 
 
 vorpal
@@ -1116,6 +988,121 @@ vorpal
 
   });
 
+  vorpal
+    .command('pay <amount> <address>', 'Pay <amount> (of ASSET) to <address>. <amount>.')
+    .action(function(args, callback) {
+  		var self = this;
+      if(!isConnected()){
+        self.log("You have to be connected to a Bench rootchain or sidechain in order to send transactions.");
+        return callback();
+      }
+      var currency;
+      var found = false;
+
+      if(typeof args.amount != "number")
+      {
+
+        for(var i in currencies)
+        {
+          if(args.amount.startsWith(currencies[i]))
+          {
+            currency=currencies[i];
+            args.amount = Number(args.amount.replace(currency,""));
+            getBEXPriceTicker(currency);
+            found = true;
+            break;
+          }
+        }
+
+        if(!found)
+        {
+          self.log("Invalid Currency Format");
+          return callback();
+        }
+      }
+
+      async.waterfall([
+        function(seriesCb){
+          getAccount(self, seriesCb);
+        },
+        function(account, seriesCb){
+          var address = null;
+          var publicKey = null;
+          var passphrase = '';
+          if (account.passphrase) {
+            passphrase = account.passphrase;
+            var keys = bcorejs.crypto.getKeys(passphrase);
+            publicKey = keys.publicKey;
+            address = bcorejs.crypto.getAddress(publicKey);
+          } else if (account.publicKey) {
+            address = account.address;
+            publicKey = account.publicKey;
+          } else {
+            return seriesCb('No public key for account');
+          }
+
+          var bexamount = args.amount;
+          var bexAmountString = args.amount;
+
+          if(currency){
+            if(!bexPriceTicker[currency]){
+              return seriesCb("Can't get price from market. Aborted.");
+            }
+            bexamount = parseInt(args.amount * 100000000 / Number(bexPriceTicker[currency]["price_"+currency.toLowerCase()]),10);
+            bexAmountString = bexamount/100000000;
+          } else {
+            bexamount = parseInt(args.amount * 100000000, 10);
+          }
+
+          self.prompt({
+            type: 'confirm',
+            name: 'continue',
+            default: false,
+            message: 'Sending ' + bexAmountString + ' ' + network.config.token+' '+(currency?'('+currency+args.amount+') ':'')+'to '+args.address+' now',
+          }, function(result){
+            if (result.continue) {
+              try {
+                var transaction = bcorejs.transaction.createTransaction(args.address, bexamount, null, passphrase);
+              } catch (error) {
+                return seriesCb('Failed: ' + error);
+              }
+              ledgerSignTransaction(seriesCb, transaction, account, function(transaction) {
+                if (!transaction) {
+                  return seriesCb('Failed to sign transaction with ledger');
+                }
+                return seriesCb(null, transaction);
+              });
+            }
+            else {
+              return seriesCb("Aborted.");
+            }
+          });
+        },
+        function(transaction, seriesCb){
+          postTransaction(self, transaction, function(err, response, body){
+            if(err){
+              seriesCb("Failed to send transaction: " + err);
+            }
+            else if(body.success){
+              seriesCb(null, transaction);
+            }
+            else {
+              seriesCb("Failed to send transaction: " + body.error);
+            }
+          });
+        }
+      ], function(err, transaction){
+        if(err){
+          self.log(colors.red(err));
+        }
+        else{
+          self.log(colors.green("Transaction sent successfully with id "+transaction.id));
+        }
+        return callback();
+      });
+    });
+
+
 vorpal
   .command('message sign <message>', 'Sign a message')
   .action(function(args, callback) {
@@ -1168,13 +1155,25 @@ vorpal
         callback();
       }
     });
-
   });
 
+  vorpal
+    .command('kill', 'Kill a connection to a peer or a Bench rootchain/sidechain')
+    .action(function(args, callback) {
+  		var self = this;
+      self.log("Killed connection to "+server);
+      self.delimiter('bex>');
+      server=null;
+      network=null;
+      connected = false;
+
+      resetLedger();
+      callback();
+    });
 
 vorpal.history('bench');
 
-vorpal.log(colors.cyan(figlet.textSync("BEX","Swamp Land")));
+vorpal.log(colors.cyan(figlet.textSync("BEX BRO","Swamp Land")));
 
 vorpal
   .delimiter('bench>')

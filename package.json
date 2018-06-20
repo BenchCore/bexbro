@@ -1,6 +1,6 @@
 {
   "name": "bexbro",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "BenchCore Blockchain Command CLI. Do You Bench Bro?",
   "main": "index.js",
   "scripts": {
