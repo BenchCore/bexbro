@@ -1150,8 +1150,6 @@ vorpal
       server=null;
       network=null;
       connected = false;
-
-      resetLedger();
       callback();
     });
 

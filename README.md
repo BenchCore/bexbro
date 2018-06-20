@@ -9,13 +9,13 @@ You need to have node (version 7.6.0 or newer) installed. Then:
 $> yarn add global bexbro
 $> bench
 
-  _______   ______   __     __    _______   ______    ______      
-/_______/\ /_____/\ /__/\ /__/\ /_______/\ /_____/\  /_____/\     
-\::: _  \ \\::::_\/_\ \::\\:.\ \\::: _  \ \\:::_ \ \ \:::_ \ \    
- \::(_)  \/_\:\/___/\\_\::_\:_\/ \::(_)  \/_\:(_) ) )_\:\ \ \ \   
-  \::  _  \ \\::___\/_ _\/__\_\_/\\::  _  \ \\: __ `\ \\:\ \ \ \  
-   \::(_)  \ \\:\____/\\ \ \ \::\ \\::(_)  \ \\ \ `\ \ \\:\_\ \ \
-    \_______\/ \_____\/ \_\/  \__\/ \_______\/ \_\/ \_\/ \_____\/
+  _______   ______   __     __        _______   ______    ______
+/_______/\ /_____/\ /__/\ /__/\     /_______/\ /_____/\  /_____/\
+\::: _  \ \\::::_\/_\ \::\\:.\ \    \::: _  \ \\:::_ \ \ \:::_ \ \
+ \::(_)  \/_\:\/___/\\_\::_\:_\/     \::(_)  \/_\:(_) ) )_\:\ \ \ \
+  \::  _  \ \\::___\/_ _\/__\_\_/\    \::  _  \ \\: __ `\ \\:\ \ \ \
+   \::(_)  \ \\:\____/\\ \ \ \::\ \    \::(_)  \ \\ \ `\ \ \\:\_\ \ \
+    \_______\/ \_____\/ \_\/  \__\/     \_______\/ \_\/ \_\/ \_____\/
 
 bench>
 ```
@@ -24,23 +24,24 @@ bench>
 ```
 bench> help
 
-  Commands:
+Commands:
 
-    help [command...]                       Provides help for a given command.
-    init <chain>                          Initiate a connection to the Bench RootChain or a native SideChain.
-    get peer <ledger-peer-url>            Initiate a connection with a public peer ex: "connect peer michaelx.bex.life:6620"
-    bex life                              Print network statistics to a Bench RootChain or SideChain you are connected to.
-    bexgal                                Bench RootChain or SideChain network account/wallet status for chicks.
-    bexbro                                Bench RootChain or SideChain network account/wallet status for dudes.
-    create wallet                         Create a wallet on the Bench RootChain or SideChain you are connected to.
-    create custom wallet <string>         Generate a wallet address containing a custom (vanity) lowercased phrase (<string>) (This could take some time)
-    cast vote <delegate-name>             Cast a vote for a delegate on the Bench RootChain or SideChain you are connected to.
-    register as delegate <username>       Register yourself as a delegate on the Bench RootChain or SideChain you are connected to.
-    pay <amount> <recipient>              Pay <amount> bex to <recipient>. <amount> format examples: 10, USD10.4, EUR100
-    message sign <message>                Sign a message
-    message verify <message> <publickey>  Verify the <message> signed by the owner of <publickey> (you will be prompted to provide the signature)
-    quit                                  Kill a connection to a peer or a Bench RootChain/SideChain
-    exit                                  Exits application.
+  help [command...]                     Provides help for a given command.
+  exit                                  Exits application.
+  init <network>                        Initiate a connection to the Bench rootchain or a native sidechain.
+  connect peer <address>                Initiate a connection with a public peer ex: "connect peer michaelx.bex.life:6620"
+  bex life                              Print network statistics to a Bench rootchain or sidechain you are connected to.
+  bexgal <address>                      Calling all Bench chicks to get their account status.
+  bexbro <address>                      Get account status
+  cast vote <delegate>                  Cast a vote for a delegate on the Bench rootchain or sidechain you are connected to.
+  remove vote                           Remove previous vote
+  register as delegate <username>       Register yourself as a delegate on the Bench rootchain or sidechain you are connected to.
+  create wallet                         Create a wallet on the Bench rootchain or sidechain you are connected to.
+  create custom wallet <string>         Generate a wallet address containing a custom (vanity) lowercased phrase (<string>) (This could take some time)
+  pay <amount> <address>                Pay <amount> (of ASSET) to <address>. <amount>.
+  message sign <message>                Sign a message
+  message verify <message> <publickey>  Verify the <message> signed by the owner of <publickey> (you will be prompted to provide the signature)
+  kill                                  Kill a connection to a peer or a Bench rootchain/sidechain
 ```
 
 
